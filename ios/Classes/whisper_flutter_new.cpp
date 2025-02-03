@@ -75,6 +75,8 @@ struct whisper_print_user_data
 
 json transcribe(json jsonBody) noexcept
 {
+    whisper_print_system_info();
+
     whisper_params params;
 
     params.n_threads = jsonBody["threads"];
