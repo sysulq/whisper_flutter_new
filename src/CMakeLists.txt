@@ -15,7 +15,7 @@ file(GLOB WHISPER_SRC whisper.cpp/*.cpp whisper.cpp/*.c whisper.cpp/coreml/*)
 add_library(whisper ${WHISPER_SRC})
 
 set_target_properties(whisper_flutter PROPERTIES
-  PUBLIC_HEADER whisper.cpp/whisper.h 
+  PUBLIC_HEADER whisper.cpp/whisper.h whisper.cpp/coreml/whisper-encoder.h
   OUTPUT_NAME "whisper"
 )
 
