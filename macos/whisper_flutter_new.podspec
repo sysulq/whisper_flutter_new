@@ -18,10 +18,19 @@ A Flutter FFI plugin for Whisper.cpp.
   # builds of apps using this FFI plugin. Podspec does not support relative
   # paths, so Classes contains a forwarder C file that relatively imports
   # `../src/*` so that the C sources can be shared among all target platforms.
-  s.source_files = 'Classes/**/*'
   s.public_header_files = 'Classes**/*.h'
   s.dependency 'FlutterMacOS'
   s.platform = :osx, '10.15'
+
+  # 删除原有的source_files配置，替换为CMake构建配置
+  s.prepare_command = <<-CMD
+    cd ../ios/Classes
+    cmake -B build -G Xcode .
+    cmake --build build --config Release
+  CMD
+  
+  s.vendored_libraries = '../ios/Classes/build/Release/libwhisper.dylib'
+  s.preserve_paths = '../ios/Classes/**/*'
 
   # Flutter.framework does not contain a i386 slice.
   s.xcconfig = {

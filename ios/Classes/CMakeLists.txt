@@ -3,6 +3,16 @@
 # the plugin to fail to compile for some customers of the plugin.
 cmake_minimum_required(VERSION 3.10)
 
+# 添加macOS特定配置
+if (APPLE)
+    set(CMAKE_MACOSX_RPATH ON)
+    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        set(CMAKE_INSTALL_RPATH "@loader_path")
+        set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+        set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    endif()
+endif()
+
 project(whisper_flutter_library LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -flto=thin -fdata-sections -ffunction-sections -fvisibility=hidden -fvisibility-inlines-hidden")
@@ -43,6 +53,8 @@ endif()
 set_target_properties(whisper_flutter PROPERTIES
   PUBLIC_HEADER whisper.cpp/whisper.h
   OUTPUT_NAME "whisper"
+  BUNDLE FALSE
+  MACOSX_RPATH ON
 )
 
 # if (${ANDROID_ABI} STREQUAL "arm64-v8a")
