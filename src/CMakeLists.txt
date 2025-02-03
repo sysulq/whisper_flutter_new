@@ -10,7 +10,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -s -flto=thin -fdata-sections -ffunc
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--exclude-libs,ALL")
 set(CMAKE_BUILD_PARALLEL_LEVEL 6)
 add_library(whisper_flutter SHARED main.cpp)
-file(GLOB WHISPER_SRC whisper.cpp/*.cpp whisper.cpp/*.c)
+
+file(GLOB WHISPER_SRC whisper.cpp/*.cpp whisper.cpp/*.c whisper.cpp/coreml/*)
 add_library(whisper ${WHISPER_SRC})
 
 set_target_properties(whisper_flutter PROPERTIES
