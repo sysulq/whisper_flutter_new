@@ -24,13 +24,13 @@ A Flutter FFI plugin for Whisper.cpp.
 
   # 删除原有的source_files配置，替换为CMake构建配置
   s.prepare_command = <<-CMD
-    cd ../ios/Classes
+    cd Classes
     cmake -B build -G Xcode .
     cmake --build build --config Release
   CMD
   
-  s.vendored_libraries = '../ios/Classes/build/Release/libwhisper.dylib'
-  s.preserve_paths = '../ios/Classes/**/*'
+  s.vendored_libraries = 'Classes/build/Release/libwhisper.dylib'
+  s.preserve_paths = 'Classes/**/*'
 
   # Flutter.framework does not contain a i386 slice.
   s.xcconfig = {
