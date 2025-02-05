@@ -20,25 +20,60 @@ A Flutter FFI plugin for Whisper.cpp.
   # `../src/*` so that the C sources can be shared among all target platforms.
   s.public_header_files = 'Classes**/*.h'
   s.dependency 'FlutterMacOS'
-  s.platform = :osx, '10.15'
+  s.platform = :osx, '12.0'
 
-  # 删除原有的source_files配置，替换为CMake构建配置
   s.prepare_command = <<-CMD
-    cd Classes
-    cmake -B build -G Xcode .
+    cmake -B build Classes/whisper.cpp/  \
+          -DBUILD_SHARED_LIBS=ON \
+          -DWHISPER_BUILD_TESTS=OFF \
+          -DWHISPER_BUILD_EXAMPLES=OFF \
+          -DGGML_METAL=ON \
+          -DGGML_METAL_NDEBUG=ON \
+          -DWHISPER_COREML=1 \
+          -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
     cmake --build build --config Release
   CMD
-  
-  s.vendored_libraries = 'Classes/build/Release/libwhisper.dylib'
-  s.preserve_paths = 'Classes/**/*'
 
-  # Flutter.framework does not contain a i386 slice.
-  s.xcconfig = {
-      'CLANG_CXX_LANGUAGE_STANDARD' => 'c++20',
-  }
-  s.library = 'c++'
+  # 只包含插件源文件
+  s.source_files = 'Classes/whisper_flutter_new.{cpp,h}'
+
+  s.vendored_libraries = [
+    'build/src/libwhisper.1.7.4.dylib',
+    'build/ggml/src/libggml*.dylib',
+    'build/ggml/src/ggml-blas/libggml-coreml.dylib',
+    'build/ggml/src/ggml-metal/libggml-blas.dylib',
+    'build/ggml/src/ggml-metal/libggml-metal.dylib'
+  ]
+
   s.pod_target_xcconfig = {
-    'DEFINES_MODULE' => 'YES',
+    'HEADER_SEARCH_PATHS' => [
+      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp',
+      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/include',
+      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/ggml/include',
+      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/src/coreml'
+    ].join(' '),
+    'LIBRARY_SEARCH_PATHS' => [
+      '$(PODS_TARGET_SRCROOT)/build/src',
+      '$(PODS_TARGET_SRCROOT)/build/ggml/src',
+      '$(PODS_TARGET_SRCROOT)/build/ggml/src/ggml-metal',
+      '$(PODS_TARGET_SRCROOT)/build/ggml/src/ggml-blas',
+    ].join(' '),
+    'OTHER_LDFLAGS' => '-lwhisper -lggml -lggml-blas -lggml-metal'
   }
+
+  # 头文件搜索路径
+  s.xcconfig = {
+    'HEADER_SEARCH_PATHS' => [
+      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp',
+      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/include',
+      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/ggml/include',
+      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/src/coreml'
+    ].join(' '),
+  }
+
+  # 框架依赖
+  s.frameworks = ['Foundation', 'CoreML', 'Metal', 'MetalKit']
+
+  s.libraries = ['c++', 'stdc++']
   s.swift_version = '5.0'
 end

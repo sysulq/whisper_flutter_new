@@ -1,5 +1,5 @@
 #include "whisper_flutter_new.h"
-#include "whisper.cpp/whisper.h"
+#include "whisper.h"
 
 #define DR_WAV_IMPLEMENTATION
 #include "whisper.cpp/examples/dr_wav.h"

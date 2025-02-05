@@ -1,5 +1,9 @@
 {
     "files.associations": {
+        "*.embeddedhtml": "html",
+        "*.page-template": "vue",
+        "*.layout-template": "vue",
+        "*.vue": "vue",
         "*.ejs": "html",
         "__bit_reference": "cpp",
         "__config": "cpp",
@@ -40,6 +44,16 @@
         "typeinfo": "cpp",
         "vector": "cpp",
         "algorithm": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "array": "cpp",
+        "span": "cpp",
+        "ranges": "cpp",
+        "__nullptr": "cpp",
+        "type_traits": "cpp",
+        "inttypes.h": "c",
+        "signal.h": "c",
+        "stdarg.h": "c",
+        "ggml-quants.h": "c",
+        "ggml-threading.h": "c"
     }
 }

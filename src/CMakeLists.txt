@@ -19,6 +19,10 @@ whisper.cpp/coreml/whisper-encoder-impl.h
 whisper.cpp/coreml/whisper-encoder-impl.m
 )
 
+include_directories(
+  whisper.cpp/coreml/
+)
+
 find_library(FOUNDATION_FRAMEWORK Foundation)
 find_library(COREML_FRAMEWORK CoreML)
 if (COREML_FRAMEWORK)
