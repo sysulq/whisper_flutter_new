@@ -30,7 +30,7 @@ A Flutter FFI plugin for Whisper.cpp.
   }
 
   s.prepare_command = <<-CMD
-    rm -rf Frameworks
+    rm -rf build_whisper
     if [ ! -d whisper.cpp ]; then
       git clone --depth 1 --branch v1.7.4 https://github.com/ggerganov/whisper.cpp.git
     fi
@@ -43,11 +43,21 @@ A Flutter FFI plugin for Whisper.cpp.
       -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
     
     cmake --build build --config Release
-    cmake --install build --prefix Frameworks
-    cp ./build/src/libwhisper.coreml.dylib ./Frameworks/lib/
+    cmake --install build --prefix build_whisper
+    cp ./build/src/libwhisper.coreml.dylib ./build_whisper/lib/
     CMD
 
-  s.vendored_libraries = Dir.glob('Frameworks/lib/*.dylib')
+  s.vendored_libraries = [
+    'build_whisper/lib/libwhisper.dylib',
+    'build_whisper/lib/libwhisper.1.dylib',
+    'build_whisper/lib/libwhisper.1.7.4.dylib',
+    'build_whisper/lib/libwhisper.coreml.dylib',
+    'build_whisper/lib/libggml.dylib',
+    'build_whisper/lib/libggml-blas.dylib',
+    'build_whisper/lib/libggml-metal.dylib',
+    'build_whisper/lib/libggml-cpu.dylib',
+    'build_whisper/lib/libggml-base.dylib',
+  ]
 
   s.pod_target_xcconfig = {
     'OTHER_LDFLAGS' => '-lwhisper -lggml -lggml-blas -lggml-metal'
@@ -55,10 +65,7 @@ A Flutter FFI plugin for Whisper.cpp.
   # # 头文件搜索路径
   s.xcconfig = {
     'HEADER_SEARCH_PATHS' => [
-      '$(PODS_TARGET_SRCROOT)/Frameworks/include'
-    ].join(' '),
-    'LIBRARY_SEARCH_PATHS' => [
-      '$(PODS_TARGET_SRCROOT)/Frameworks/lib'
+      '$(PODS_TARGET_SRCROOT)/build_whisper/include'
     ].join(' '),
   }
 

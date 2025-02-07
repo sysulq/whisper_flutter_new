@@ -31,3 +31,4 @@ pubspec.lock
 build/
 macos/Frameworks/
 macos/whisper.cpp/
+macos/build_whisper/
