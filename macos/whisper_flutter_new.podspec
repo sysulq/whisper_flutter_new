@@ -22,52 +22,43 @@ A Flutter FFI plugin for Whisper.cpp.
   s.dependency 'FlutterMacOS'
   s.platform = :osx, '12.0'
 
-  s.prepare_command = <<-CMD
-    cmake -B build Classes/whisper.cpp/  \
-          -DBUILD_SHARED_LIBS=ON \
-          -DWHISPER_BUILD_TESTS=OFF \
-          -DWHISPER_BUILD_EXAMPLES=OFF \
-          -DGGML_METAL=ON \
-          -DGGML_METAL_NDEBUG=ON \
-          -DWHISPER_COREML=1 \
-          -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
-    cmake --build build --config Release
-  CMD
-
   # 只包含插件源文件
   s.source_files = 'Classes/whisper_flutter_new.{cpp,h}'
 
-  s.vendored_libraries = [
-    'build/src/libwhisper.1.7.4.dylib',
-    'build/ggml/src/libggml*.dylib',
-    'build/ggml/src/ggml-blas/libggml-coreml.dylib',
-    'build/ggml/src/ggml-metal/libggml-blas.dylib',
-    'build/ggml/src/ggml-metal/libggml-metal.dylib'
-  ]
-
   s.pod_target_xcconfig = {
-    'HEADER_SEARCH_PATHS' => [
-      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp',
-      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/include',
-      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/ggml/include',
-      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/src/coreml'
-    ].join(' '),
-    'LIBRARY_SEARCH_PATHS' => [
-      '$(PODS_TARGET_SRCROOT)/build/src',
-      '$(PODS_TARGET_SRCROOT)/build/ggml/src',
-      '$(PODS_TARGET_SRCROOT)/build/ggml/src/ggml-metal',
-      '$(PODS_TARGET_SRCROOT)/build/ggml/src/ggml-blas',
-    ].join(' '),
     'OTHER_LDFLAGS' => '-lwhisper -lggml -lggml-blas -lggml-metal'
   }
 
-  # 头文件搜索路径
+  s.prepare_command = <<-CMD
+    rm -rf Frameworks
+    if [ ! -d whisper.cpp ]; then
+      git clone --depth 1 --branch v1.7.4 https://github.com/ggerganov/whisper.cpp.git
+    fi
+    cmake -B build whisper.cpp \
+      -DBUILD_SHARED_LIBS=ON \
+      -DWHISPER_BUILD_TESTS=OFF \
+      -DWHISPER_BUILD_EXAMPLES=OFF \
+      -DWHISPER_COREML=1 \
+      -DGGML_METAL=1 \
+      -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+    
+    cmake --build build --config Release
+    cmake --install build --prefix Frameworks
+    cp ./build/src/libwhisper.coreml.dylib ./Frameworks/lib/
+    CMD
+
+  s.vendored_libraries = Dir.glob('Frameworks/lib/*.dylib')
+
+  s.pod_target_xcconfig = {
+    'OTHER_LDFLAGS' => '-lwhisper -lggml -lggml-blas -lggml-metal'
+  }
+  # # 头文件搜索路径
   s.xcconfig = {
     'HEADER_SEARCH_PATHS' => [
-      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp',
-      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/include',
-      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/ggml/include',
-      '$(PODS_TARGET_SRCROOT)/Classes/whisper.cpp/src/coreml'
+      '$(PODS_TARGET_SRCROOT)/Frameworks/include'
+    ].join(' '),
+    'LIBRARY_SEARCH_PATHS' => [
+      '$(PODS_TARGET_SRCROOT)/Frameworks/lib'
     ].join(' '),
   }
 

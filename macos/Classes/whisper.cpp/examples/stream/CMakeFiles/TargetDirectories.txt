@@ -1,2 +1,0 @@
-/Users/pilot/workspace/github.com/ggerganov/whisper.cpp/examples/stream/CMakeFiles/edit_cache.dir
-/Users/pilot/workspace/github.com/ggerganov/whisper.cpp/examples/stream/CMakeFiles/rebuild_cache.dir
