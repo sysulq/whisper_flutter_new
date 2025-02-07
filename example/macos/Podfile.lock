@@ -45,8 +45,8 @@ SPEC CHECKSUMS:
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   record_darwin: 1f6619f2abac4d1ca91d3eeab038c980d76f1517
-  whisper_flutter_new: 57cba8a2541cd35016d50013f9da945b1e03c6da
+  whisper_flutter_new: 829056630852d1ee889752d5b4fa4090a0991dd0
 
-PODFILE CHECKSUM: 9ebaf0ce3d369aaa26a9ea0e159195ed94724cf3
+PODFILE CHECKSUM: f1715a907c7948e269f928300efb11ae1bb86dd6
 
 COCOAPODS: 1.16.2
