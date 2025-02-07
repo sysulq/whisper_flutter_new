@@ -18,19 +18,62 @@ A Flutter FFI plugin for Whisper.cpp.
   # builds of apps using this FFI plugin. Podspec does not support relative
   # paths, so Classes contains a forwarder C file that relatively imports
   # `../src/*` so that the C sources can be shared among all target platforms.
-  s.source_files = 'Classes/**/*'
-  s.public_header_files = 'Classes**/*.h'
   s.dependency 'Flutter'
-  s.platform = :ios, '9.0'
+  s.platform = :ios, '11.0'
 
-  # Flutter.framework does not contain a i386 slice.
-  s.xcconfig = {
-      'CLANG_CXX_LANGUAGE_STANDARD' => 'c++20',
+  # 只包含插件源文件
+  s.source_files = 'Classes/whisper_flutter_new.{cpp,h}'
+  s.public_header_files = 'Classes**/*.h'
+
+  s.pod_target_xcconfig = {
+    'OTHER_LDFLAGS' => '-lwhisper -lggml -lggml-blas -lggml-metal'
   }
-  s.library = 'c++'
+
+  s.prepare_command = <<-CMD
+    WHIPSER_VERSION=1.7.4
+    if [ ! -d whisper.cpp ]; then
+      wget -q https://github.com/ggerganov/whisper.cpp/archive/refs/tags/v${WHIPSER_VERSION}.tar.gz
+      tar xf v${WHIPSER_VERSION}.tar.gz
+      mv whisper.cpp-${WHIPSER_VERSION} whisper.cpp
+      rm v${WHIPSER_VERSION}.tar.gz
+    fi
+
+    rm -rf build_whisper
+    cmake -B build whisper.cpp \
+      -DBUILD_SHARED_LIBS=ON \
+      -DWHISPER_BUILD_TESTS=OFF \
+      -DWHISPER_BUILD_EXAMPLES=OFF \
+      -DWHISPER_COREML=1 \
+      -DGGML_METAL=1
+    
+    cmake --build build --config Release
+    cmake --install build --prefix build_whisper
+
+    cp ./build/src/libwhisper.coreml.dylib build_whisper/lib/
+    rm build_whisper/lib/libwhisper.dylib build_whisper/lib/libwhisper.1.dylib
+    cp build_whisper/lib/libwhisper.1.7.4.dylib build_whisper/lib/libwhisper.dylib
+    cp build_whisper/lib/libwhisper.1.7.4.dylib build_whisper/lib/libwhisper.1.dylib
+  CMD
+
+  s.vendored_libraries = Dir.glob('build_whisper/lib/*.dylib')
+
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386',
+    'OTHER_LDFLAGS' => '-lwhisper -lggml -lggml-metal -lggml-blas'
   }
+
+  # # 头文件搜索路径
+  s.xcconfig = {
+    'CLANG_CXX_LANGUAGE_STANDARD' => 'c++20',
+    'HEADER_SEARCH_PATHS' => [
+      '$(PODS_TARGET_SRCROOT)/build_whisper/include'
+    ].join(' ')
+  }
+
+  # 框架依赖
+  s.frameworks = ['Foundation', 'CoreML', 'Metal', 'MetalKit']
+
+  s.libraries = ['c++', 'stdc++']
   s.swift_version = '5.0'
 end

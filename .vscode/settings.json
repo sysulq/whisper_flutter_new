@@ -54,6 +54,7 @@
         "signal.h": "c",
         "stdarg.h": "c",
         "ggml-quants.h": "c",
-        "ggml-threading.h": "c"
+        "ggml-threading.h": "c",
+        "thread": "cpp"
     }
 }

@@ -1,8 +1,8 @@
 #include "main.h"
-#include "whisper.cpp/whisper.h"
+#include "whisper.h"
 
 #define DR_WAV_IMPLEMENTATION
-#include "whisper.cpp/examples/dr_wav.h"
+#include "dr_wav.h"
 
 #include <cstdio>
 #include <string>
@@ -98,11 +98,12 @@ json transcribe(json jsonBody) noexcept
 
     if (params.seed < 0)
     {
-        params.seed = time(NULL);
+        params.seed = static_cast<int32_t>(time(NULL));
     }
 
     // whisper init
-    struct whisper_context *ctx = whisper_init_from_file(params.model.c_str());
+    struct whisper_context_params cparams = whisper_context_default_params();
+    struct whisper_context *ctx = whisper_init_from_file_with_params(params.model.c_str(), cparams);
     std::string text_result = "";
     const auto fname_inp = params.audio;
     // WAV input
@@ -137,7 +138,7 @@ json transcribe(json jsonBody) noexcept
             return jsonResult;
         }
 
-        int n = wav.totalPCMFrameCount;
+        auto n = static_cast<int>(wav.totalPCMFrameCount);
 
         std::vector<int16_t> pcm16;
         pcm16.resize(n * wav.channels);
@@ -187,7 +188,7 @@ json transcribe(json jsonBody) noexcept
             wparams.token_timestamps = true;
         }
 
-        if (whisper_full(ctx, wparams, pcmf32.data(), pcmf32.size()) != 0)
+        if (whisper_full(ctx, wparams, pcmf32.data(), static_cast<int>(pcmf32.size())) != 0)
         {
             jsonResult["@type"] = "error";
             jsonResult["message"] = "failed to process audio";
