@@ -13,6 +13,8 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
   WhisperController(this.ref) : super(const AsyncData(null));
 
   final Ref ref;
+  final _progressNotifier = ValueNotifier<double>(0.0);
+  double get progress => _progressNotifier.value;
 
   Future<void> transcribe(String filePath) async {
     final WhisperModel model = ref.read(modelProvider);
@@ -59,6 +61,9 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
       );
 
       final File? convertedFile = await converter.convert();
+      String fullText = '';
+      List<WhisperTranscribeSegment> allSegments = [];
+
       final WhisperTranscribeResponse transcription = await whisper.transcribe(
         transcribeRequest: TranscribeRequest(
           audio: convertedFile?.path ?? filePath,
@@ -69,15 +74,16 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
           isNoTimestamps: !withSegments,
           splitOnWord: splitWords,
         ),
+        onProgress: (progress) {
+          _progressNotifier.value = progress;
+          state = const AsyncLoading(); // 触发UI更新
+        },
       );
 
-      final Duration transcriptionDuration = DateTime.now().difference(start);
-      if (kDebugMode) {
-        debugPrint("[Whisper]End = $transcriptionDuration");
-      }
+      // 更新最终结果
       state = AsyncData(
         TranscribeResult(
-          time: transcriptionDuration,
+          time: DateTime.now().difference(start),
           transcription: transcription,
         ),
       );
@@ -86,7 +92,15 @@ class WhisperController extends StateNotifier<AsyncValue<TranscribeResult?>> {
         debugPrint("[Whisper]Error = $e");
       }
       state = const AsyncData(null);
+    } finally {
+      _progressNotifier.value = 0;
     }
+  }
+
+  @override
+  void dispose() {
+    _progressNotifier.dispose();
+    super.dispose();
   }
 }
 
@@ -94,3 +108,16 @@ final whisperControllerProvider = StateNotifierProvider.autoDispose<
     WhisperController, AsyncValue<TranscribeResult?>>(
   (ref) => WhisperController(ref),
 );
+
+// 修改进度provider实现
+final transcribeProgressProvider = Provider.autoDispose<double>((ref) {
+  final controller = ref.watch(whisperControllerProvider.notifier);
+  final state = ref.watch(whisperControllerProvider);
+
+  print("progress = ${controller.progress}");
+
+  return state.maybeWhen(
+    loading: () => controller.progress,
+    orElse: () => 0.0,
+  );
+});

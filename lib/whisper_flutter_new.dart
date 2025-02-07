@@ -9,7 +9,6 @@
 import "dart:convert";
 import "dart:ffi";
 import "dart:io";
-import "dart:isolate";
 
 import "package:ffi/ffi.dart";
 import "package:flutter/foundation.dart";
@@ -18,7 +17,7 @@ import "package:whisper_flutter_new/bean/_models.dart";
 import "package:whisper_flutter_new/bean/whisper_dto.dart";
 import "package:whisper_flutter_new/download_model.dart";
 import "package:whisper_flutter_new/whisper_bindings_generated.dart";
-
+import 'package:flutter/widgets.dart' show WidgetsBinding;
 export "package:whisper_flutter_new/bean/_models.dart";
 export "package:whisper_flutter_new/download_model.dart" show WhisperModel;
 
@@ -26,8 +25,12 @@ export "package:whisper_flutter_new/download_model.dart" show WhisperModel;
 class Whisper {
   /// [model] is required
   /// [modelDir] is path where downloaded model will be stored.
-  /// Default to library directory
-  const Whisper({required this.model, this.modelDir, this.downloadHost});
+  Whisper({required this.model, this.modelDir, this.downloadHost}) {
+    // 在构造函数中初始化NativeCallable
+    _nativeCallback = NativeCallable<Void Function(Double)>.isolateLocal(
+      _progressHandler,
+    );
+  }
 
   /// model used for transcription
   final WhisperModel model;
@@ -37,6 +40,18 @@ class Whisper {
 
   // override of model download host
   final String? downloadHost;
+
+  // 实例级别的回调函数引用
+  late final NativeCallable<Void Function(Double)> _nativeCallback;
+  void Function(double)? _onProgress;
+
+  // 处理进度回调
+  void _progressHandler(double progress) {
+    if (kDebugMode) {
+      print("Progress: ${progress.toDouble()}");
+    }
+    _onProgress?.call(progress.toDouble());
+  }
 
   DynamicLibrary _openLib() {
     if (Platform.isAndroid) {
@@ -73,49 +88,47 @@ class Whisper {
 
   Future<Map<String, dynamic>> _request({
     required WhisperRequestDto whisperRequest,
+    void Function(double)? onProgress,
   }) async {
     if (model != WhisperModel.none) {
       await _initModel();
     }
-    return Isolate.run(
-      () async {
-        final Pointer<Utf8> data =
-            whisperRequest.toRequestString().toNativeUtf8();
-        final Pointer<Char> res =
-            WhisperFlutterBindings(_openLib()).request(data.cast<Char>());
-        final Map<String, dynamic> result = json.decode(
-          res.cast<Utf8>().toDartString(),
-        ) as Map<String, dynamic>;
-        try {
-          malloc.free(data);
-          malloc.free(res);
-        } catch (_) {}
-        if (kDebugMode) {
-          debugPrint("Result =  $result");
-        }
-        return result;
-      },
-    );
+
+    _onProgress = onProgress;
+    final bindings = WhisperFlutterBindings(_openLib());
+
+    try {
+      bindings.register_progress_callback(_nativeCallback.nativeFunction);
+
+      final data = whisperRequest.toRequestString().toNativeUtf8();
+      final res = bindings.request(data.cast<Char>());
+      final result =
+          json.decode(res.cast<Utf8>().toDartString()) as Map<String, dynamic>;
+
+      malloc.free(data);
+      malloc.free(res);
+
+      return result;
+    } finally {
+      _onProgress = null;
+    }
   }
 
   /// Transcribe audio file to text
   Future<WhisperTranscribeResponse> transcribe({
     required TranscribeRequest transcribeRequest,
+    void Function(double)? onProgress,
   }) async {
     final String modelDir = await _getModelDir();
-    final Map<String, dynamic> result = await _request(
+    final result = await _request(
       whisperRequest: TranscribeRequestDto.fromTranscribeRequest(
         transcribeRequest,
         model.getPath(modelDir),
       ),
+      onProgress: onProgress,
     );
-    if (kDebugMode) {
-      debugPrint("Transcribe request $result");
-    }
+
     if (result["text"] == null) {
-      if (kDebugMode) {
-        debugPrint('Transcribe Exception ${result['message']}');
-      }
       throw Exception(result["message"]);
     }
     return WhisperTranscribeResponse.fromJson(result);
@@ -131,5 +144,10 @@ class Whisper {
       result,
     );
     return response.message;
+  }
+
+  // 添加dispose方法清理资源
+  void dispose() {
+    _nativeCallback.close();
   }
 }

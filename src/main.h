@@ -11,7 +11,12 @@ extern "C"
 {
 #endif
 
-    char *request(char *body);
+    // 定义进度回调函数类型
+    typedef void (*dart_progress_callback)(double progress);
+
+    // 添加注册回调的函数声明
+    FUNCTION_ATTRIBUTE void register_progress_callback(dart_progress_callback callback);
+    FUNCTION_ATTRIBUTE char *request(char *body);
 
 #ifdef __cplusplus
 }

@@ -73,6 +73,30 @@ struct whisper_print_user_data
     const std::vector<std::vector<float>> *pcmf32s;
 };
 
+// 创建专门的进度回调数据结构
+struct progress_data {
+    json* progress_json;
+    const whisper_params* params;
+};
+
+// 全局变量存储Dart回调
+static dart_progress_callback g_progress_callback = nullptr;
+
+// 注册回调函数的实现
+extern "C" FUNCTION_ATTRIBUTE void register_progress_callback(dart_progress_callback callback) {
+    g_progress_callback = callback;
+}
+
+// 修改进度回调实现，添加调试输出
+void progress_callback(struct whisper_context * ctx, struct whisper_state * state, int progress, void * user_data) {
+    if (g_progress_callback == nullptr) {
+        return;
+    }
+    
+    float progress_float = static_cast<float>(progress) / 100.0f;
+    g_progress_callback(progress_float);
+}
+
 json transcribe(json jsonBody) noexcept
 {
     whisper_params params;
@@ -173,69 +197,52 @@ json transcribe(json jsonBody) noexcept
     // run the inference
     {
         whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
-
-        wparams.print_realtime = false;
-        wparams.print_progress = false;
-        wparams.print_timestamps = !params.no_timestamps;
-        // wparams.print_special_tokens = params.print_special_tokens;
+        
+        wparams.progress_callback = progress_callback;
+        wparams.progress_callback_user_data = nullptr;
+        wparams.token_timestamps = true;
         wparams.translate = params.translate;
         wparams.language = params.language.c_str();
         wparams.n_threads = params.n_threads;
         wparams.split_on_word = params.split_on_word;
 
-        if (params.split_on_word) {
-            wparams.max_len = 1;
-            wparams.token_timestamps = true;
-        }
-
-        if (whisper_full(ctx, wparams, pcmf32.data(), static_cast<int>(pcmf32.size())) != 0)
-        {
+        if (whisper_full(ctx, wparams, pcmf32.data(), static_cast<int>(pcmf32.size())) != 0) {
             jsonResult["@type"] = "error";
             jsonResult["message"] = "failed to process audio";
             return jsonResult;
         }
 
-        
+        // 获取所有segments并构建返回结果
+        const int n_segments = whisper_full_n_segments(ctx);
+        std::vector<json> segmentsJson;
+        std::string full_text;
 
-        // print result;
-        if (!wparams.print_realtime)
-        {
+        // printf("Total segments: %d\n", n_segments);
 
-            const int n_segments = whisper_full_n_segments(ctx);
+        // 遍历所有segments
+        for (int i = 0; i < n_segments; i++) {
+            const char* text = whisper_full_get_segment_text(ctx, i);
+            full_text += std::string(text);
+            
+            // printf("Segment %d: %s\n", i, text);
 
-            std::vector<json> segmentsJson = {};
+            json jsonSegment;
+            const int64_t t0 = whisper_full_get_segment_t0(ctx, i);
+            const int64_t t1 = whisper_full_get_segment_t1(ctx, i);
 
-            for (int i = 0; i < n_segments; ++i)
-            {
-                const char *text = whisper_full_get_segment_text(ctx, i);
-
-                std::string str(text);
-                text_result += str;
-                if (params.no_timestamps)
-                {
-                    // printf("%s", text);
-                    // fflush(stdout);
-                } else {
-                    json jsonSegment;
-                    const int64_t t0 = whisper_full_get_segment_t0(ctx, i);
-                    const int64_t t1 = whisper_full_get_segment_t1(ctx, i);
-
-                    // printf("[%s --> %s]  %s\n", to_timestamp(t0).c_str(), to_timestamp(t1).c_str(), text);
-
-                    jsonSegment["from_ts"] = t0;
-                    jsonSegment["to_ts"] = t1;
-                    jsonSegment["text"] = text;
-
-                    segmentsJson.push_back(jsonSegment);
-                }
-            }
-
-            if (!params.no_timestamps) {
-                jsonResult["segments"] = segmentsJson;
-            }
+            jsonSegment["from_ts"] = t0;
+            jsonSegment["to_ts"] = t1;
+            jsonSegment["text"] = text;
+            segmentsJson.push_back(jsonSegment);
         }
+
+        // 构建最终返回结果
+        jsonResult["text"] = full_text;
+        jsonResult["segments"] = segmentsJson;  // 直接设置segments数组
+        
+        // Debug输出完整的JSON
+        // printf("Final JSON: %s\n", jsonResult.dump(2).c_str());
     }
-    jsonResult["text"] = text_result;
     
     whisper_free(ctx);
     return jsonResult;

@@ -23,6 +23,21 @@ class WhisperFlutterBindings {
           lookup)
       : _lookup = lookup;
 
+  /// 添加注册回调的函数声明
+  void register_progress_callback(
+    dart_progress_callback callback,
+  ) {
+    return _register_progress_callback(
+      callback,
+    );
+  }
+
+  late final _register_progress_callbackPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(dart_progress_callback)>>(
+          'register_progress_callback');
+  late final _register_progress_callback = _register_progress_callbackPtr
+      .asFunction<void Function(dart_progress_callback)>();
+
   ffi.Pointer<ffi.Char> request(
     ffi.Pointer<ffi.Char> body,
   ) {
@@ -37,3 +52,9 @@ class WhisperFlutterBindings {
   late final _request = _requestPtr
       .asFunction<ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>)>();
 }
+
+/// 定义进度回调函数类型
+typedef dart_progress_callback
+    = ffi.Pointer<ffi.NativeFunction<dart_progress_callbackFunction>>;
+typedef dart_progress_callbackFunction = ffi.Void Function(ffi.Double progress);
+typedef Dartdart_progress_callbackFunction = void Function(double progress);

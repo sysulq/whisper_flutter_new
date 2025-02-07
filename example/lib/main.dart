@@ -19,6 +19,9 @@ import "package:test_whisper/whisper_result.dart";
 import "package:whisper_flutter_new/whisper_flutter_new.dart";
 
 void main() {
+  // 确保绑定初始化
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(const MyApp());
 }
 
@@ -41,13 +44,22 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MyHomePage extends ConsumerWidget {
+// 修改为继承ConsumerStatefulWidget
+class MyHomePage extends ConsumerStatefulWidget {
   const MyHomePage({
     super.key,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyHomePage> createState() => _MyHomePageState();
+}
+
+// _MyHomePageState保持不变，因为已经继承了ConsumerState
+class _MyHomePageState extends ConsumerState<MyHomePage> {
+  @override
+  Widget build(BuildContext context) {
+    final whisperState = ref.watch(whisperControllerProvider);
+    final progress = ref.watch(transcribeProgressProvider);
     final WhisperModel model = ref.watch(modelProvider);
     final String lang = ref.watch(langProvider);
     final bool translate = ref.watch(translateProvider);
@@ -57,6 +69,7 @@ class MyHomePage extends ConsumerWidget {
     final WhisperController controller = ref.watch(
       whisperControllerProvider.notifier,
     );
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -66,207 +79,237 @@ class MyHomePage extends ConsumerWidget {
       ),
       body: SafeArea(
         minimum: const EdgeInsets.all(20),
-        child: SingleChildScrollView(child: Consumer(
-          builder: (context, ref, _) {
-            final AsyncValue<TranscribeResult?> transcriptionAsync = ref.watch(
-              whisperControllerProvider,
-            );
-
-            return transcriptionAsync.maybeWhen(
-              skipLoadingOnRefresh: true,
-              skipLoadingOnReload: true,
-              data: (TranscribeResult? transcriptionResult) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    const Text("Model :"),
-                    DropdownButton(
-                      isExpanded: true,
-                      value: model,
-                      items: WhisperModel.values
-                          .map(
-                            (WhisperModel model) => DropdownMenuItem(
-                              value: model,
-                              child: Text(model.modelName),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (WhisperModel? model) {
-                        if (model != null) {
-                          ref.read(modelProvider.notifier).state = model;
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    const Text("Lang :"),
-                    DropdownButton(
-                      isExpanded: true,
-                      value: lang,
-                      items: ["auto", "zh", "en"]
-                          .map(
-                            (String lang) => DropdownMenuItem(
-                              value: lang,
-                              child: Text(lang),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (String? lang) {
-                        if (lang != null) {
-                          ref.read(langProvider.notifier).state = lang;
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    const Text("Translate result :"),
-                    DropdownButton(
-                      isExpanded: true,
-                      value: translate,
-                      items: const [
-                        DropdownMenuItem(
-                          value: false,
-                          child: Text("No"),
-                        ),
-                        DropdownMenuItem(
-                          value: true,
-                          child: Text("Yes"),
-                        ),
-                      ],
-                      onChanged: (bool? translate) {
-                        if (translate != null) {
-                          ref.read(translateProvider.notifier).state =
-                              translate;
-                        }
-                      },
-                    ),
-                    const Text("With segments :"),
-                    DropdownButton(
-                      isExpanded: true,
-                      value: withSegments,
-                      items: const [
-                        DropdownMenuItem(
-                          value: false,
-                          child: Text("No"),
-                        ),
-                        DropdownMenuItem(
-                          value: true,
-                          child: Text("Yes"),
-                        ),
-                      ],
-                      onChanged: (bool? withSegments) {
-                        if (withSegments != null) {
-                          ref.read(withSegmentsProvider.notifier).state =
-                              withSegments;
-                        }
-                      },
-                    ),
-                    const Text("Split word :"),
-                    DropdownButton(
-                      isExpanded: true,
-                      value: splitWords,
-                      items: const [
-                        DropdownMenuItem(
-                          value: false,
-                          child: Text("No"),
-                        ),
-                        DropdownMenuItem(
-                          value: true,
-                          child: Text("Yes"),
-                        ),
-                      ],
-                      onChanged: (bool? splitWords) {
-                        if (splitWords != null) {
-                          ref.read(splitWordsProvider.notifier).state =
-                              splitWords;
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () async {
-                            final Directory documentDirectory =
-                                await getApplicationDocumentsDirectory();
-                            final ByteData documentBytes =
-                                await rootBundle.load(
-                              "assets/jfk.wav",
-                            );
-
-                            final String jfkPath =
-                                "${documentDirectory.path}/jfk.wav";
-
-                            await File(jfkPath).writeAsBytes(
-                              documentBytes.buffer.asUint8List(),
-                            );
-
-                            await controller.transcribe(jfkPath);
-                          },
-                          child: const Text("jfk.wav"),
-                        ),
-                        const SizedBox(width: 20),
-                        ElevatedButton(
-                          onPressed: () async {
-                            final String? recordFilePath =
-                                await RecordPage.openRecordPage(
-                              context,
-                            );
-
-                            if (recordFilePath != null) {
-                              await controller.transcribe(recordFilePath);
-                            }
-                          },
-                          child: const Text("record"),
-                        ),
-                      ],
-                    ),
-                    if (transcriptionResult != null) ...[
-                      const SizedBox(height: 20),
-                      Text(
-                        transcriptionResult.transcription.text,
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        transcriptionResult.time.toString(),
-                      ),
-                      if (transcriptionResult.transcription.segments !=
-                          null) ...[
-                        const SizedBox(height: 25),
-                        Expanded(
-                          child: ListView.separated(
-                            itemCount: transcriptionResult
-                                .transcription.segments!.length,
-                            itemBuilder: (context, index) {
-                              final WhisperTranscribeSegment segment =
-                                  transcriptionResult
-                                      .transcription.segments![index];
-
-                              final Duration fromTs = segment.fromTs;
-                              final Duration toTs = segment.toTs;
-                              final String text = segment.text;
-                              return Text(
-                                "[$fromTs - $toTs] $text",
-                              );
-                            },
-                            separatorBuilder: (context, index) {
-                              return const Divider();
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 30),
-                      ],
+        child: Column(
+          children: [
+            // 优化进度条显示逻辑
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: whisperState.maybeWhen(
+                loading: () => Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Column(
+                    children: [
+                      LinearProgressIndicator(value: progress),
+                      const SizedBox(height: 8),
+                      Text('转录进度: ${(progress * 100).toStringAsFixed(1)}%'),
                     ],
-                  ],
-                );
-              },
-              orElse: () {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              },
-            );
-          },
-        )),
+                  ),
+                ),
+                orElse: () => const SizedBox.shrink(),
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final AsyncValue<TranscribeResult?> transcriptionAsync =
+                        ref.watch(
+                      whisperControllerProvider,
+                    );
+
+                    return transcriptionAsync.maybeWhen(
+                      skipLoadingOnRefresh: true,
+                      skipLoadingOnReload: true,
+                      data: (TranscribeResult? transcriptionResult) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            const Text("Model :"),
+                            DropdownButton(
+                              isExpanded: true,
+                              value: model,
+                              items: WhisperModel.values
+                                  .map(
+                                    (WhisperModel model) => DropdownMenuItem(
+                                      value: model,
+                                      child: Text(model.modelName),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (WhisperModel? model) {
+                                if (model != null) {
+                                  ref.read(modelProvider.notifier).state =
+                                      model;
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            const Text("Lang :"),
+                            DropdownButton(
+                              isExpanded: true,
+                              value: lang,
+                              items: ["auto", "zh", "en"]
+                                  .map(
+                                    (String lang) => DropdownMenuItem(
+                                      value: lang,
+                                      child: Text(lang),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (String? lang) {
+                                if (lang != null) {
+                                  ref.read(langProvider.notifier).state = lang;
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            const Text("Translate result :"),
+                            DropdownButton(
+                              isExpanded: true,
+                              value: translate,
+                              items: const [
+                                DropdownMenuItem(
+                                  value: false,
+                                  child: Text("No"),
+                                ),
+                                DropdownMenuItem(
+                                  value: true,
+                                  child: Text("Yes"),
+                                ),
+                              ],
+                              onChanged: (bool? translate) {
+                                if (translate != null) {
+                                  ref.read(translateProvider.notifier).state =
+                                      translate;
+                                }
+                              },
+                            ),
+                            const Text("With segments :"),
+                            DropdownButton(
+                              isExpanded: true,
+                              value: withSegments,
+                              items: const [
+                                DropdownMenuItem(
+                                  value: false,
+                                  child: Text("No"),
+                                ),
+                                DropdownMenuItem(
+                                  value: true,
+                                  child: Text("Yes"),
+                                ),
+                              ],
+                              onChanged: (bool? withSegments) {
+                                if (withSegments != null) {
+                                  ref
+                                      .read(withSegmentsProvider.notifier)
+                                      .state = withSegments;
+                                }
+                              },
+                            ),
+                            const Text("Split word :"),
+                            DropdownButton(
+                              isExpanded: true,
+                              value: splitWords,
+                              items: const [
+                                DropdownMenuItem(
+                                  value: false,
+                                  child: Text("No"),
+                                ),
+                                DropdownMenuItem(
+                                  value: true,
+                                  child: Text("Yes"),
+                                ),
+                              ],
+                              onChanged: (bool? splitWords) {
+                                if (splitWords != null) {
+                                  ref.read(splitWordsProvider.notifier).state =
+                                      splitWords;
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    final Directory documentDirectory =
+                                        await getApplicationDocumentsDirectory();
+                                    final ByteData documentBytes =
+                                        await rootBundle.load(
+                                      "assets/jfk.wav",
+                                    );
+
+                                    final String jfkPath =
+                                        "${documentDirectory.path}/jfk.wav";
+
+                                    await File(jfkPath).writeAsBytes(
+                                      documentBytes.buffer.asUint8List(),
+                                    );
+
+                                    await controller.transcribe(jfkPath);
+                                  },
+                                  child: const Text("jfk.wav"),
+                                ),
+                                const SizedBox(width: 20),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    final String? recordFilePath =
+                                        await RecordPage.openRecordPage(
+                                      context,
+                                    );
+
+                                    if (recordFilePath != null) {
+                                      await controller
+                                          .transcribe(recordFilePath);
+                                    }
+                                  },
+                                  child: const Text("record"),
+                                ),
+                              ],
+                            ),
+                            if (transcriptionResult != null) ...[
+                              const SizedBox(height: 20),
+                              Text(
+                                transcriptionResult.transcription.text,
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                transcriptionResult.time.toString(),
+                              ),
+                              if (transcriptionResult.transcription.segments !=
+                                  null) ...[
+                                const SizedBox(height: 25),
+                                ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: transcriptionResult
+                                      .transcription.segments!.length,
+                                  itemBuilder: (context, index) {
+                                    final WhisperTranscribeSegment segment =
+                                        transcriptionResult
+                                            .transcription.segments![index];
+
+                                    final Duration fromTs = segment.fromTs;
+                                    final Duration toTs = segment.toTs;
+                                    final String text = segment.text;
+                                    return Text(
+                                      "[$fromTs - $toTs] $text",
+                                    );
+                                  },
+                                  separatorBuilder: (context, index) {
+                                    return const Divider();
+                                  },
+                                ),
+                                const SizedBox(height: 30),
+                              ],
+                            ],
+                          ],
+                        );
+                      },
+                      orElse: () {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
