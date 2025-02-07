@@ -44,7 +44,9 @@ A Flutter FFI plugin for Whisper.cpp.
       -DWHISPER_BUILD_TESTS=OFF \
       -DWHISPER_BUILD_EXAMPLES=OFF \
       -DWHISPER_COREML=1 \
-      -DGGML_METAL=1
+      -DGGML_METAL=1 \
+      -DCMAKE_OSX_SYSROOT=iphonesimulator \
+      -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
     
     cmake --build build --config Release
     cmake --install build --prefix build_whisper
@@ -59,6 +61,7 @@ A Flutter FFI plugin for Whisper.cpp.
 
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
+    'VALID_ARCHS' => 'arm64 x86_64',
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386',
     'OTHER_LDFLAGS' => '-lwhisper -lggml -lggml-metal -lggml-blas'
   }
