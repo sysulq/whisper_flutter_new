@@ -77,9 +77,6 @@ A Flutter FFI plugin for Whisper.cpp.
 
   # # 头文件搜索路径
   s.xcconfig = {
-    'LIBRARY_SEARCH_PATHS' => [
-      '$(PODS_TARGET_SRCROOT)/build_whisper/lib'
-    ].join(' '),
     'HEADER_SEARCH_PATHS' => [
       '$(PODS_TARGET_SRCROOT)/build_whisper/include'
     ].join(' ')
