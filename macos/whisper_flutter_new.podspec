@@ -71,6 +71,7 @@ A Flutter FFI plugin for Whisper.cpp.
 
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
+    'VALID_ARCHS' => 'arm64 x86_64',
     'OTHER_LDFLAGS' => '-lwhisper -lggml -lggml-metal -lggml-blas'
   }
 
