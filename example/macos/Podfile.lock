@@ -41,11 +41,11 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   ffmpeg-kit-macos-full-gpl: c9bd04ddd4dc777db0ecda4e342bb4f5ad972157
-  ffmpeg_kit_flutter_full_gpl: 29a39b7a0cef8199794e41bcef72cadff167c2a5
+  ffmpeg_kit_flutter_full_gpl: d381c7a487cb0eb535a19d87dbee2e3d57837e8c
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
-  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
-  record_darwin: 1f6619f2abac4d1ca91d3eeab038c980d76f1517
-  whisper_flutter_new: 829056630852d1ee889752d5b4fa4090a0991dd0
+  path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
+  record_darwin: 0c21d4367390053cf94be5527b36dd4556a72fd2
+  whisper_flutter_new: c7a26ebd503871863d4298a493b12b2e46e8d2fe
 
 PODFILE CHECKSUM: f1715a907c7948e269f928300efb11ae1bb86dd6
 

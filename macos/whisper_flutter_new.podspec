@@ -29,6 +29,7 @@ A Flutter FFI plugin for Whisper.cpp.
     'OTHER_LDFLAGS' => '-lwhisper -lggml -lggml-blas -lggml-metal'
   }
 
+  
   s.prepare_command = <<-CMD
     WHIPSER_VERSION=1.7.4
     if [ ! -d whisper.cpp ]; then
@@ -58,14 +59,26 @@ A Flutter FFI plugin for Whisper.cpp.
     cp build_whisper/lib/libwhisper.1.7.4.dylib build_whisper/lib/libwhisper.1.dylib
   CMD
 
-  s.vendored_libraries = Dir.glob('build_whisper/lib/*.dylib')
+  s.vendored_libraries = [
+    'build_whisper/lib/libggml.dylib',
+    'build_whisper/lib/libwhisper.dylib',
+    'build_whisper/lib/libggml-metal.dylib',
+    'build_whisper/lib/libggml-blas.dylib',
+    'build_whisper/lib/libwhisper.coreml.dylib',
+    'build_whisper/lib/libwhisper.1.dylib',
+    'build_whisper/lib/libwhisper.1.7.4.dylib'
+  ].join(' ')
 
   s.pod_target_xcconfig = {
+    'DEFINES_MODULE' => 'YES',
     'OTHER_LDFLAGS' => '-lwhisper -lggml -lggml-metal -lggml-blas'
   }
 
   # # 头文件搜索路径
   s.xcconfig = {
+    'LIBRARY_SEARCH_PATHS' => [
+      '$(PODS_TARGET_SRCROOT)/build_whisper/lib'
+    ].join(' '),
     'HEADER_SEARCH_PATHS' => [
       '$(PODS_TARGET_SRCROOT)/build_whisper/include'
     ].join(' ')
@@ -74,6 +87,5 @@ A Flutter FFI plugin for Whisper.cpp.
   # 框架依赖
   s.frameworks = ['Foundation', 'CoreML', 'Metal', 'MetalKit']
 
-  s.libraries = ['c++', 'stdc++']
   s.swift_version = '5.0'
 end
